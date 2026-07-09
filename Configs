@@ -1,0 +1,186 @@
+! ================================================
+! Multilayer Switch0 (top) - Core / Aggregation (Layer 2 only)
+! ================================================
+
+hostname MLS0
+
+! --- VLAN Database (must match access switches for trunking) ---
+vlan 10
+ name DATA_VLAN10
+vlan 20
+ name DATA_VLAN20
+vlan 30
+ name DATA_VLAN30
+
+spanning-tree mode rapid-pvst
+! Root is Switch2 - this switch just participates, no priority changes needed
+
+! --- EtherChannel to Switch2 (4x FastEthernet, LACP) ---
+interface range FastEthernet0/1 - 4
+ switchport trunk encapsulation dot1q
+ switchport mode trunk
+ channel-group 1 mode active
+ channel-protocol lacp
+!
+interface Port-channel1
+ switchport trunk encapsulation dot1q
+ switchport mode trunk
+ description ETHERCHANNEL-TO-SWITCH2
+
+! --- EtherChannel to Switch3 (4x FastEthernet, LACP) ---
+interface range FastEthernet0/5 - 8
+ switchport trunk encapsulation dot1q
+ switchport mode trunk
+ channel-group 2 mode active
+ channel-protocol lacp
+!
+interface Port-channel2
+ switchport trunk encapsulation dot1q
+ switchport mode trunk
+ description ETHERCHANNEL-TO-SWITCH3
+
+! No access ports - this switch has no directly connected end devices
+! No "ip routing" - Layer 2 only, all inter-VLAN routing handled by Switch2
+
+end
+
+
+! ================================================
+! Multilayer Switch2 (bottom-left) - ROOT BRIDGE + L3 Distribution
+! ================================================
+
+hostname MLS2
+
+! --- VLAN Database ---
+vlan 10
+ name DATA_VLAN10
+vlan 20
+ name DATA_VLAN20
+vlan 30
+ name DATA_VLAN30
+
+! --- Enable Layer 3 routing on the switch ---
+ip routing
+
+! --- STP: force this switch to be root for all VLANs in use ---
+spanning-tree mode rapid-pvst
+spanning-tree vlan 1,10,20,30 root primary
+
+! --- EtherChannel to Switch0 (4x FastEthernet, LACP) ---
+interface range FastEthernet0/1 - 4
+ switchport trunk encapsulation dot1q
+ switchport mode trunk
+ channel-group 1 mode active
+ channel-protocol lacp
+!
+interface Port-channel1
+ switchport trunk encapsulation dot1q
+ switchport mode trunk
+ description ETHERCHANNEL-TO-SWITCH0
+
+! --- EtherChannel to Switch3 (4x FastEthernet, LACP) ---
+interface range FastEthernet0/5 - 8
+ switchport trunk encapsulation dot1q
+ switchport mode trunk
+ channel-group 2 mode active
+ channel-protocol lacp
+!
+interface Port-channel2
+ switchport trunk encapsulation dot1q
+ switchport mode trunk
+ description ETHERCHANNEL-TO-SWITCH3
+
+! --- Access ports for local hosts ---
+interface FastEthernet0/9
+ description PC0
+ switchport mode access
+ switchport access vlan 10
+!
+interface FastEthernet0/10
+ description Server0
+ switchport mode access
+ switchport access vlan 20
+!
+interface FastEthernet0/11
+ description PC1
+ switchport mode access
+ switchport access vlan 30
+
+! --- SVIs: default gateway for each VLAN ---
+interface Vlan10
+ ip address 10.0.0.1 255.255.255.240
+ no shutdown
+!
+interface Vlan20
+ ip address 10.0.0.17 255.255.255.240
+ no shutdown
+!
+interface Vlan30
+ ip address 10.0.0.33 255.255.255.240
+ no shutdown
+
+end
+
+
+! ================================================
+! Multilayer Switch3 (bottom-right) - Access (Layer 2 only)
+! ================================================
+
+hostname MLS3
+
+! --- VLAN Database (must match distribution switch for trunking) ---
+vlan 10
+ name DATA_VLAN10
+vlan 20
+ name DATA_VLAN20
+vlan 30
+ name DATA_VLAN30
+
+spanning-tree mode rapid-pvst
+! Root is Switch2. This switch's Po2 (direct link to Switch2) loses the
+! STP path-cost/tie-break comparison against the path via Switch0, and
+! ends up blocking - traffic to/from Switch2 flows via Switch0 instead.
+
+! --- EtherChannel to Switch2 (4x FastEthernet, LACP) ---
+interface range FastEthernet0/1 - 4
+ switchport trunk encapsulation dot1q
+ switchport mode trunk
+ channel-group 2 mode active
+ channel-protocol lacp
+!
+interface Port-channel2
+ switchport trunk encapsulation dot1q
+ switchport mode trunk
+ description ETHERCHANNEL-TO-SWITCH2 -- BLOCKING (redundant path)
+
+! --- EtherChannel to Switch0 (4x FastEthernet, LACP) ---
+interface range FastEthernet0/5 - 8
+ switchport trunk encapsulation dot1q
+ switchport mode trunk
+ channel-group 1 mode active
+ channel-protocol lacp
+!
+interface Port-channel1
+ switchport trunk encapsulation dot1q
+ switchport mode trunk
+ description ETHERCHANNEL-TO-SWITCH0 -- FORWARDING
+
+! --- Access ports for local hosts ---
+interface FastEthernet0/9
+ description Laptop0
+ switchport mode access
+ switchport access vlan 10
+!
+interface FastEthernet0/10
+ description PC2
+ switchport mode access
+ switchport access vlan 20
+!
+interface FastEthernet0/11
+ description PC3
+ switchport mode access
+ switchport access vlan 30
+
+! No "ip routing" - Layer 2 only, all inter-VLAN routing handled by Switch2
+
+end
