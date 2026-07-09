@@ -6,7 +6,7 @@ Build a redundant three-switch triangle topology, bundle the redundant links wit
 
 ## Topology
 
-![Topology](./topology.png)
+![Topology](./Topology.png)
 
 - 3x 3560-24PS multilayer switches in a triangle: **Switch0** (core/aggregation), **Switch2** (root bridge + L3 distribution), **Switch3** (access)
 - Each switch-to-switch link is a **4-port LACP EtherChannel** (Fa0/1–4 and Fa0/5–8 bundled into Port-channel interfaces)
