@@ -77,4 +77,4 @@ show ip route
 
 ## Configs
 
-See [`/configs`](./configs) for the reconstructed switch configurations from this lab (Switch0, Switch2, Switch3).
+See [`/configs`](./Configs) for the reconstructed switch configurations from this lab (Switch0, Switch2, Switch3).
